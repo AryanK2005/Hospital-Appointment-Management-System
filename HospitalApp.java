@@ -3,32 +3,35 @@ import java.io.FileWriter;
 import java.io.IOException;
 
 /*
- =====================================================
+ ==========================================================
  HOSPITAL APPOINTMENT MANAGEMENT SYSTEM
- -----------------------------------------------------
- Features:
- - Patient & Doctor Registration
- - Priority-based Appointment Booking
- - Emergency handling using PriorityQueue
- - File handling for saving appointments
- - Multithreading for reminders
- =====================================================
+ ----------------------------------------------------------
+ Author  : Student Project
+ Purpose : Console-based Java application demonstrating
+           OOP, Collections, Multithreading, Exceptions,
+           and File Handling.
+ ==========================================================
 */
 
-// -------------------- PATIENT CLASS --------------------
+// ==================== PATIENT CLASS ====================
+/*
+ Represents a patient entity.
+ Demonstrates encapsulation using private fields
+ and public getter methods.
+*/
 class Patient {
     private int id;
     private String name;
     private int age;
 
-    // Constructor
+    // Constructor initializes patient details
     public Patient(int id, String name, int age) {
         this.id = id;
         this.name = name;
         this.age = age;
     }
 
-    // Getter methods (Encapsulation)
+    // Getter methods (no setters → data protection)
     public int getId() {
         return id;
     }
@@ -38,20 +41,22 @@ class Patient {
     }
 }
 
-// -------------------- DOCTOR CLASS --------------------
+// ==================== DOCTOR CLASS ====================
+/*
+ Represents a doctor entity.
+ Stores specialization information for realism.
+*/
 class Doctor {
     private int id;
     private String name;
     private String specialization;
 
-    // Constructor
     public Doctor(int id, String name, String specialization) {
         this.id = id;
         this.name = name;
         this.specialization = specialization;
     }
 
-    // Getter methods
     public int getId() {
         return id;
     }
@@ -61,12 +66,16 @@ class Doctor {
     }
 }
 
-// -------------------- APPOINTMENT CLASS --------------------
+// ==================== APPOINTMENT CLASS ====================
+/*
+ Links Patient and Doctor together.
+ Uses priority to handle emergency appointments.
+*/
 class Appointment {
-    protected Patient patient;
-    protected Doctor doctor;
-    protected String date;
-    protected int priority; // 1 = Normal, 2 = Emergency
+    private Patient patient;
+    private Doctor doctor;
+    private String date;
+    private int priority; // 2 = Emergency, 1 = Normal
 
     public Appointment(Patient patient, Doctor doctor, String date, int priority) {
         this.patient = patient;
@@ -79,7 +88,7 @@ class Appointment {
         return priority;
     }
 
-    // Overriding toString() for meaningful display & file writing
+    // Provides readable output for display and file storage
     @Override
     public String toString() {
         return "Patient: " + patient.getName()
@@ -89,60 +98,62 @@ class Appointment {
     }
 }
 
-// -------------------- CUSTOM EXCEPTION --------------------
+// ==================== CUSTOM EXCEPTION ====================
+/*
+ Custom checked exception for appointment-related issues.
+ Improves clarity over generic Exception.
+*/
 class SlotUnavailableException extends Exception {
-    private static final long serialVersionUID = 1L;
-
     public SlotUnavailableException(String message) {
         super(message);
     }
 }
 
-// -------------------- REMINDER THREAD --------------------
+// ==================== REMINDER THREAD ====================
+/*
+ Demonstrates multithreading.
+ Runs independently and reminds user after delay.
+*/
 class ReminderThread extends Thread {
 
-    // Thread runs independently to remind user
     @Override
     public void run() {
         try {
-            Thread.sleep(3000); // Delay for reminder
-            System.out.println("\n🔔 Reminder: Check today's appointments!");
+            Thread.sleep(3000); // Simulates background task
+            System.out.println("\n🔔 Reminder: Review today's appointments!");
         } catch (InterruptedException e) {
-            System.out.println("Reminder interrupted");
+            System.out.println("Reminder thread interrupted.");
         }
     }
 }
 
-// -------------------- MAIN APPLICATION --------------------
+// ==================== MAIN APPLICATION ====================
 public class HospitalApp {
 
-    // Single Scanner object used throughout program
+    // Single Scanner instance (avoids resource leak)
     private static final Scanner sc = new Scanner(System.in);
 
-    // Data storage using Collections
+    // Dynamic storage using ArrayList
     private static final List<Patient> patients = new ArrayList<>();
     private static final List<Doctor> doctors = new ArrayList<>();
 
-    // PriorityQueue ensures emergency appointments come first
+    /*
+     PriorityQueue ensures:
+     - Emergency appointments are handled first
+     - Automatic sorting based on priority value
+    */
     private static final PriorityQueue<Appointment> appointments =
             new PriorityQueue<>((a, b) -> b.getPriority() - a.getPriority());
 
-    // -------------------- MAIN METHOD --------------------
+    // ==================== MAIN METHOD ====================
     public static void main(String[] args) {
 
-        // Start reminder thread
+        // Start background reminder thread
         new ReminderThread().start();
 
+        // Infinite loop keeps application running
         while (true) {
-            System.out.println("\n===== HOSPITAL APPOINTMENT SYSTEM =====");
-            System.out.println("1. Register Patient");
-            System.out.println("2. Register Doctor");
-            System.out.println("3. Book Appointment");
-            System.out.println("4. View Appointments");
-            System.out.println("5. Save Appointments to File");
-            System.out.println("6. Exit");
-            System.out.print("Enter choice: ");
-
+            showMenu();
             int choice = sc.nextInt();
 
             try {
@@ -152,24 +163,39 @@ public class HospitalApp {
                     case 3 -> bookAppointment();
                     case 4 -> viewAppointments();
                     case 5 -> saveToFile();
-                    case 6 -> {
-                        System.out.println("Exiting system...");
-                        sc.close();
-                        System.exit(0);
-                    }
-                    default -> System.out.println("Invalid choice!");
+                    case 6 -> exitApp();
+                    default -> System.out.println("❌ Invalid choice!");
                 }
             } catch (Exception e) {
+                // Centralized error handling
                 System.out.println("Error: " + e.getMessage());
             }
         }
     }
 
-    // -------------------- REGISTER PATIENT --------------------
+    // ==================== MENU ====================
+    private static void showMenu() {
+        System.out.println("\n===== HOSPITAL APPOINTMENT SYSTEM =====");
+        System.out.println("1. Register Patient");
+        System.out.println("2. Register Doctor");
+        System.out.println("3. Book Appointment");
+        System.out.println("4. View Appointments");
+        System.out.println("5. Save Appointments to File");
+        System.out.println("6. Exit");
+        System.out.print("Enter choice: ");
+    }
+
+    // ==================== PATIENT REGISTRATION ====================
     private static void registerPatient() {
         System.out.print("Enter Patient ID: ");
         int id = sc.nextInt();
         sc.nextLine();
+
+        // Prevent duplicate patient IDs
+        if (findPatientById(id) != null) {
+            System.out.println("❌ Patient ID already exists!");
+            return;
+        }
 
         System.out.print("Enter Patient Name: ");
         String name = sc.nextLine();
@@ -178,14 +204,19 @@ public class HospitalApp {
         int age = sc.nextInt();
 
         patients.add(new Patient(id, name, age));
-        System.out.println("✅ Patient Registered Successfully");
+        System.out.println("✅ Patient registered successfully.");
     }
 
-    // -------------------- REGISTER DOCTOR --------------------
+    // ==================== DOCTOR REGISTRATION ====================
     private static void registerDoctor() {
         System.out.print("Enter Doctor ID: ");
         int id = sc.nextInt();
         sc.nextLine();
+
+        if (findDoctorById(id) != null) {
+            System.out.println("❌ Doctor ID already exists!");
+            return;
+        }
 
         System.out.print("Enter Doctor Name: ");
         String name = sc.nextLine();
@@ -194,15 +225,14 @@ public class HospitalApp {
         String specialization = sc.nextLine();
 
         doctors.add(new Doctor(id, name, specialization));
-        System.out.println("✅ Doctor Registered Successfully");
+        System.out.println("✅ Doctor registered successfully.");
     }
 
-    // -------------------- BOOK APPOINTMENT --------------------
+    // ==================== BOOK APPOINTMENT ====================
     private static void bookAppointment() throws SlotUnavailableException {
 
-        // Validation check
         if (patients.isEmpty() || doctors.isEmpty()) {
-            throw new SlotUnavailableException("Register patient and doctor first!");
+            throw new SlotUnavailableException("Please register patients and doctors first.");
         }
 
         System.out.print("Enter Patient ID: ");
@@ -212,20 +242,11 @@ public class HospitalApp {
         int did = sc.nextInt();
         sc.nextLine();
 
-        // Find patient
-        Patient patient = patients.stream()
-                .filter(p -> p.getId() == pid)
-                .findFirst()
-                .orElse(null);
-
-        // Find doctor
-        Doctor doctor = doctors.stream()
-                .filter(d -> d.getId() == did)
-                .findFirst()
-                .orElse(null);
+        Patient patient = findPatientById(pid);
+        Doctor doctor = findDoctorById(did);
 
         if (patient == null || doctor == null) {
-            throw new SlotUnavailableException("Invalid patient or doctor ID!");
+            throw new SlotUnavailableException("Invalid Patient or Doctor ID.");
         }
 
         System.out.print("Enter Date (dd-mm-yyyy): ");
@@ -237,30 +258,46 @@ public class HospitalApp {
         int priority = emergency.equalsIgnoreCase("yes") ? 2 : 1;
 
         appointments.add(new Appointment(patient, doctor, date, priority));
-        System.out.println("✅ Appointment Booked Successfully");
+        System.out.println("✅ Appointment booked successfully.");
     }
 
-    // -------------------- VIEW APPOINTMENTS --------------------
+    // ==================== VIEW APPOINTMENTS ====================
     private static void viewAppointments() {
         if (appointments.isEmpty()) {
-            System.out.println("No appointments available");
+            System.out.println("No appointments found.");
             return;
         }
 
-        System.out.println("\n--- Appointments List (Emergency First) ---");
+        System.out.println("\n--- Appointment List (Priority Order) ---");
         appointments.forEach(System.out::println);
     }
 
-    // -------------------- SAVE TO FILE --------------------
+    // ==================== SAVE TO FILE ====================
     private static void saveToFile() throws IOException {
 
-        // Try-with-resources ensures file is properly closed
+        // Try-with-resources automatically closes FileWriter
         try (FileWriter writer = new FileWriter("appointments.txt", true)) {
             for (Appointment a : appointments) {
                 writer.write(a + System.lineSeparator());
             }
         }
 
-        System.out.println("📁 Appointments saved to file successfully");
+        System.out.println("📁 Appointments saved successfully.");
+    }
+
+    // ==================== HELPER METHODS ====================
+    private static Patient findPatientById(int id) {
+        return patients.stream().filter(p -> p.getId() == id).findFirst().orElse(null);
+    }
+
+    private static Doctor findDoctorById(int id) {
+        return doctors.stream().filter(d -> d.getId() == id).findFirst().orElse(null);
+    }
+
+    // ==================== EXIT ====================
+    private static void exitApp() {
+        System.out.println("Exiting system...");
+        sc.close();
+        System.exit(0);
     }
 }
